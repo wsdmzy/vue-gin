@@ -1,0 +1,10 @@
+server:
+  port: 1016
+datasource:
+  driverName : mysql
+  host : 127.0.0.1
+  port : 3306
+  database : gines
+  username : root
+  password : xq27892789
+  charset : utf8
