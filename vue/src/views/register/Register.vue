@@ -10,19 +10,24 @@
         <b-card title="注册">
           <b-form>
             <b-form-group label="姓名">
-              <b-form-input v-model="user.name" type="text" placeholder="请输入你的名称 (选填)"></b-form-input>
+              <b-form-input v-model="$v.user.name.$model" type="text" placeholder="请输入你的名称 (选填)"></b-form-input>
             </b-form-group>
             <b-form-group label="手机号">
-              <b-form-input v-model="user.telephone" type="number" required placeholder="请输入的你手机号" @change="show"></b-form-input>
-               <b-form-text 
-                  id="password-help-block" 
-                  text-variant="danger" 
-                  v-if="showTelephoneValidate">
-                手机号必须11位
-              </b-form-text>
+              <b-form-input 
+                v-model="$v.user.telephone.$model" 
+                type="number" 
+                :state="validateState('telephone')"
+                placeholder="请输入的你手机号" >
+              </b-form-input> 
+              <b-form-invalid-feedback :state="validateState('telephone')">
+                手机号不符合规范
+              </b-form-invalid-feedback>
             </b-form-group>
             <b-form-group label="密码">
-              <b-form-input v-model="user.password" type="password" required placeholder="请输入你的密码"></b-form-input>
+              <b-form-input v-model="$v.user.password.$model" type="password" :state="validateState('password')" required placeholder="请输入你的密码"></b-form-input>
+              <b-form-invalid-feedback :state="validateState('password')">
+                密码必须大于6位
+              </b-form-invalid-feedback>
             </b-form-group>
             <b-form-group >
               <b-button 
@@ -39,6 +44,12 @@
 </template>
 
 <script>
+import { required,  between, minLength} from 'vuelidate/lib/validators'
+
+import customValidator  from '@/common/validator.js'
+
+import { mapActions } from 'vuex'
+
 export default {
   data() {
     return {
@@ -47,16 +58,48 @@ export default {
         telephone: '',
         password: ''
       },
-      showTelephoneValidate: false
+      
     };
   },
+  validations: {
+    user: {
+      name: {},
+      telephone: {
+        required,
+        phone: customValidator.telephoneValidator
+      },
+      password: {
+        required,
+        minLength: minLength(6)
+      }
+    }
+  },
   methods: {
+    ...mapActions('userModule', {userRegister: 'register'}),
     register() {
-      
-      
+      // 验证数据
+      this.$v.user.$touch(); //不填写表单提交也触发错误
+      if (this.$v.user.$anyError) {
+        return
+      }
+      // 请求
+      this.userRegister(this.user).then(() => {
+         // 跳转到主页
+          this.$router.replace({ name: 'Home' })
+      }).catch(err => {
+        // console.log('err:' + err.response.data.msg)
+        this.$bvToast.toast(err.response.data.msg, {
+          title: '数据验证错误',
+          variant: 'danger',
+          solid: true 
+        })
+      })
+     
     },
-    show() {
-      this.user.telephone.length !== 11 ? this.showTelephoneValidate = true : this.showTelephoneValidate = false
+    validateState(name) {
+      // $dirty交互了 
+      const { $dirty, $error } = this.$v.user[name];
+      return $dirty ? !$error : null
     }
   }
 };
